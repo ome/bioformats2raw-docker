@@ -1,7 +1,7 @@
-# Used for production releases
+# Used for pre-releases
 name: base
 channels:
   - conda-forge
-  - ome
+  - ome/label/pre
 dependencies:
   - bioformats2raw
