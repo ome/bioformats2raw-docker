@@ -22,7 +22,7 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          docker run -t -v $(pwd)/data/:/data/ bioformats2raws-docker /data/tubhiswt-2D/tubhiswt_C0.ome.tif /data/zarr-pyramid
+          docker run -t -v $(pwd)/data/:/data/ bioformats2raws-docker /data/tubhiswt-2D/tubhiswt_C0.ome.tif /tmp/zarr-pyramid
   # Push image to DockerHub
   upload:
     needs: build
