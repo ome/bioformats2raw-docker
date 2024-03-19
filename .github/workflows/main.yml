@@ -1,0 +1,57 @@
+---
+name: Build
+
+on: 
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          docker build -t bioformats2raws-docker .
+      - name: Prepare data
+        run: |
+          mkdir data
+          wget --user-agent GHA https://downloads.openmicroscopy.org/images/OME-TIFF/2016-06/tubhiswt-2D.zip && unzip tubhiswt-2D.zip && mv tubhiswt-2D data
+      - name: Test
+        shell: bash
+        run: |
+          docker run -t -v $(pwd)/data/:/data/ bioformats2raws-docker /data/tubhiswt-2D/tubhiswt_C0.ome.tif /data/zarr-pyramid
+  # Push image to DockerHub
+  upload:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    env:
+      name: openmicroscopy/bioformats2raw
+    steps:
+      - name: Get other tags
+        id: gettags
+        uses: jupyterhub/action-major-minor-tag-calculator@v3
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          prefix: "${{ env.name }}:"
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.name }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          tags: ${{ join(fromJson(steps.gettags.outputs.tags)) }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
